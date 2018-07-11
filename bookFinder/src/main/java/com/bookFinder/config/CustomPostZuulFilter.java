@@ -14,8 +14,6 @@ public class CustomPostZuulFilter extends ZuulFilter {
     public Object run() {
     	RequestContext ctx = RequestContext.getCurrentContext();
 	    HttpServletResponse response = ctx.getResponse();
-	    System.out.println("AAAAAAA : "+response.getStatus());
-	    
         return null;
     }
  

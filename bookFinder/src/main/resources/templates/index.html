@@ -46,7 +46,8 @@ var orderObj = {
 	0:"accuracy",
 	1:"recency",
 	2:"sales"
-}
+};
+
 $(document).ready(function(){	
 	$("#btn_search").click(function(){
 		fn_search();
@@ -63,12 +64,13 @@ $(document).ready(function(){
 	})
 });
 function fn_initTable(){
+	var pageSize = 10;
 	table = $('#booksTable').DataTable({		 
 
 		"autoWidth"  : true,
 		"ordering" : false,
-		"pageLength" : 10,	
-		"bLengthChange": false, 
+		"pageLength" : pageSize,	
+		"lengthChange": false, 
 		"paging"     : true,
 		"pagingType": "full_numbers",
 		"scrollY": 420,   	
@@ -84,17 +86,21 @@ function fn_initTable(){
 	        type: "GET",	       
 	        data: function (data) { 
 	        	console.log(data);
+	        	console.log(pageSize);
+	        	var page = (data.start/pageSize)+1;
 	        	return {
 	        		query : $("#searchKeyword").val(),
 			 		sort: orderObj[$(".searchSort.on").index()],
-			 		page : (data.start/10)+1,
-			 		size : 10,
+			 		page : page,
+			 		size : pageSize,
 			 		target : 'all',
 			 		category : ''
 	        	};
 	        },      
 	       	dataSrc: function (json) {       
 	       		console.log(json);
+	       		json.recordsTotal = json.meta.pageable_count;
+	       	    json.recordsFiltered = json.meta.pageable_count;
 				return json.documents;
 	        },
 			error:function(e){
@@ -136,9 +142,18 @@ function fn_search(){
             	<span class="searchSort pointer">정확도순</span>
             	<span class="searchSort pointer">판매량순</span>
             </div>
-            <div class="col-md-6">
-            	
-            </div>
+            <div class="col-md-3">
+            	검색대상
+            	<select>
+            		<option>전체</option>
+            		<option>제목</option>
+            		<option>ISBN</option>
+            		<option>주제어</option>
+            		<option>목차</option>
+            		<option>책소개</option>
+            		<option>출판사</option>
+            	</select>
+            </div>            
             <div class="col-md-3">
                 <div class="input-group md-form form-sm form-2 pl-0 mb-0">
                     <input class="form-control my-0 py-1 grey-border" type="text" placeholder="Search" aria-label="Search" id="searchKeyword">
