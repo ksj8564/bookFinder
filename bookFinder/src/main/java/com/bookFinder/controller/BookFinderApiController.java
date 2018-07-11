@@ -6,18 +6,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bookFinder.model.Student;
-import com.bookFinder.service.BookFinderService;
+import com.bookFinder.service.BookFinderServiceImpl;
  
 @RestController
-public class BookFinderController {
+public class BookFinderApiController {
  
 	@Autowired
-	private BookFinderService bookFinderService;
+	private BookFinderServiceImpl bookFinderService;
 
 	@RequestMapping("/save")
 	public Student save(Student param) {				
 		return bookFinderService.save(param);
 	} 
+	
+	
 	
 	@RequestMapping("/findAll")	
 	public List<Student> findAll() {	

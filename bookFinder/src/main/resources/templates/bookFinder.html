@@ -1,37 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Insert title here</title>
+<title>BookFinder</title>
 
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
 <link rel="stylesheet" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css" integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt" crossorigin="anonymous">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css">
 
-<script src="https://code.jquery.com/jquery-3.3.1.min.js"  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="   crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 <script src="//cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
 
 <style>
-	.selector-for-some-widget {
-	  box-sizing: content-box;
-	}
-	.input-group.md-form.form-sm.form-2 input {
-	    border: 1px solid #bdbdbd;
-	    border-top-left-radius: 0.25rem;
-	    border-bottom-left-radius: 0.25rem;
-	}
-	.input-group.md-form.form-sm.form-2 input.grey-border  {
-	    border: 1px solid #e9ecef;
-	}
-	.input-group input[type=text]:focus:not([readonly]) {
-	    box-shadow: none;
-	}
-	.form-2 .input-group-text {
-	    border: 1px solid #e9ecef;
-	}
 	.pointer{
 		cursor: pointer;
 	}
@@ -57,10 +40,16 @@ $(document).ready(function(){
 			fn_search();
 		}
 	});
-	$(".searchSort").click(function(){
+	$(".searchSort").click(function(){		
 		$(".searchSort").removeClass("on");
-		$(this).addClass("on");
-		fn_search();
+		$(this).addClass("on");	
+		
+		var target = $("#searchKeyword");
+		var tv = target.val();		
+		if(tv != null && tv != ""){			
+			fn_search();
+		}
+			
 	})
 });
 function fn_initTable(){
@@ -93,7 +82,7 @@ function fn_initTable(){
 			 		sort: orderObj[$(".searchSort.on").index()],
 			 		page : page,
 			 		size : pageSize,
-			 		target : 'all',
+			 		target : $("#searchTarget option:selected").val(),
 			 		category : ''
 	        	};
 	        },      
@@ -101,6 +90,12 @@ function fn_initTable(){
 	       		console.log(json);
 	       		json.recordsTotal = json.meta.pageable_count;
 	       	    json.recordsFiltered = json.meta.pageable_count;
+	       	    if(json.recordsTotal > 500){
+	       	    	json.recordsTotal=500;
+	       	    }
+	       	 	if(json.recordsFiltered > 500){
+	       	    	json.recordsFiltered=500;
+	       	    }
 				return json.documents;
 	        },
 			error:function(e){
@@ -111,6 +106,7 @@ function fn_initTable(){
 			{ "data": "title", "name": "도서 제목"},
 			{ "data": "authors", "name": "저자"},
 			{ "data": "category", "name": "분류"},
+			{ "data": "publisher", "name": "출판사"},
 			{ "data": "price", "name": "가격", "render": $.fn.dataTable.render.number(',') },
 			{ "data": "thumbnail", 
 				"render": function (url) {				
@@ -120,13 +116,25 @@ function fn_initTable(){
 		]
 	});
 }
-
-function fn_search(){ 
-	if(table==null){
-		fn_initTable();
-	}else{
-		table.ajax.reload();	
+function fn_validate(){
+	
+	var target = $("#searchKeyword");
+	var tv = target.val();	
+	if(tv == null || tv == ""){
+		alert("검색어는 필수입니다.");
+		return false;
 	}
+	
+	return true;
+}
+function fn_search(){ 
+	if(fn_validate()){
+		if(table==null){
+			fn_initTable();
+		}else{
+			table.ajax.reload();	
+		}
+	}	
 }
 </script>
 
@@ -134,29 +142,41 @@ function fn_search(){
 <body>
 <div class="card">
     <div class="card-body">
+    	<div class="row">
+    	<div class="col-md-11">
+    	</div>
+    	<div class="col-md-1">
+    		<a href="/logout">로그아웃</a>
+    	</div>    	
+		</div>
         <!-- Grid row -->
-        <div class="row">
+        <div class="row mb-3">
             <!-- Grid column -->
-            <div class="col-md-3">
-            	<span class="searchSort on pointer">최신순</span>
+            <div class="col-md-4">            
+            	<span class="searchSort pointer on">최신순</span>
             	<span class="searchSort pointer">정확도순</span>
             	<span class="searchSort pointer">판매량순</span>
-            </div>
-            <div class="col-md-3">
-            	검색대상
-            	<select>
-            		<option>전체</option>
-            		<option>제목</option>
-            		<option>ISBN</option>
-            		<option>주제어</option>
-            		<option>목차</option>
-            		<option>책소개</option>
-            		<option>출판사</option>
-            	</select>
             </div>            
-            <div class="col-md-3">
+            <div class="col-md-4">       
+            	<label for="searchTarget">
+            		검색대상
+            	</label>     	
+            	<select id="searchTarget" class="custom-select">
+            		<option value="all">전체</option>
+            		<option value="title">제목</option>
+            		<option value="isbn">ISBN</option>
+            		<option value="keyword">주제어</option>
+            		<option value="contents">목차</option>
+            		<option value="overview">책소개</option>
+            		<option value="publisher">출판사</option>
+            	</select>
+            </div>         
+            <div class="col-md-4">   
+            	<label for="searchKeyword">
+            		검색어
+            	</label>         
                 <div class="input-group md-form form-sm form-2 pl-0 mb-0">
-                    <input class="form-control my-0 py-1 grey-border" type="text" placeholder="Search" aria-label="Search" id="searchKeyword">
+					<input class="form-control my-0 py-1 grey-border" type="text" placeholder="Search" aria-label="Search" id="searchKeyword">
                     <div class="input-group-append" id="btn_search">
                         <span class="input-group-text waves-effect grey lighten-3" id="basic-addon1">
                             <a><i class="fa fa-search text-grey" aria-hidden="true"></i></a>
@@ -170,10 +190,11 @@ function fn_search(){
         <!--Table-->
         <table class="table table-striped" id="booksTable">
         	<colgroup>
-        		<col width="20%">
-        		<col width="20%">
-        		<col width="20%">
-        		<col width="20%">
+        		<col width="15%">
+        		<col width="15%">
+        		<col width="15%">
+        		<col width="15%">
+        		<col width="15%">
         		<col width="*">
         	</colgroup>        	
             <!--Table head-->
@@ -183,6 +204,7 @@ function fn_search(){
                     <th>저자</th>
                     <th>분류</th>
                     <th>가격</th>
+                    <th>출판사</th>
                     <th>이미지</th>
                 </tr>
             </thead>
