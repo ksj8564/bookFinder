@@ -48,8 +48,10 @@ $(document).ready(function(){
 		var tv = target.val();		
 		if(tv != null && tv != ""){			
 			fn_search();
-		}
-			
+		}			
+	});
+	$("#btn_logout").click(function(){
+		location.href="/logout";
 	})
 });
 function fn_initTable(){
@@ -142,40 +144,47 @@ function fn_search(){
 <body>
 <div class="card">
     <div class="card-body">
-    	<div class="row">
-    	<div class="col-md-11">
-    	</div>
-    	<div class="col-md-1">
-    		<a href="/logout">로그아웃</a>
-    	</div>    	
+    	<div class="row"> 
+	    	<div class="col-md-11 mb-3 text-right">
+	    		
+	    	</div> 
+	    	<div class="col-md-1 mb-3 text-right">
+	    		<button type="button" class="btn btn-dark" id="btn_logout">로그아웃</button>
+	    	</div>    	
 		</div>
         <!-- Grid row -->
-        <div class="row mb-3">
+        <div class="row mb-3 form-inline" >
             <!-- Grid column -->
-            <div class="col-md-4">            
-            	<span class="searchSort pointer on">최신순</span>
-            	<span class="searchSort pointer">정확도순</span>
-            	<span class="searchSort pointer">판매량순</span>
+            <div class="col-md-4">    
+            	<div class="input-group md-form form-sm form-2 pl-0 mb-0"> 
+					<ul class="list-inline">
+					  <li class="pointer list-inline-item searchSort on">최신순</li>
+					  <li class="pointer list-inline-item searchSort">정확도순</li>
+					  <li class="pointer list-inline-item searchSort">판매량순</li>
+					</ul>
+				</div>
             </div>            
-            <div class="col-md-4">       
-            	<label for="searchTarget">
-            		검색대상
-            	</label>     	
-            	<select id="searchTarget" class="custom-select">
-            		<option value="all">전체</option>
-            		<option value="title">제목</option>
-            		<option value="isbn">ISBN</option>
-            		<option value="keyword">주제어</option>
-            		<option value="contents">목차</option>
-            		<option value="overview">책소개</option>
-            		<option value="publisher">출판사</option>
-            	</select>
+            <div class="col-md-4">      
+            	<div class="input-group md-form form-sm form-2 pl-0 mb-0"> 
+	            	<label  class="mr-sm-2 mb-0" for="searchTarget">
+	            		검색대상
+	            	</label>     	
+	            	<select id="searchTarget" class="custom-select">
+	            		<option value="all">전체</option>
+	            		<option value="title">제목</option>
+	            		<option value="isbn">ISBN</option>
+	            		<option value="keyword">주제어</option>
+	            		<option value="contents">목차</option>
+	            		<option value="overview">책소개</option>
+	            		<option value="publisher">출판사</option>
+	            	</select>
+            	</div>
             </div>         
-            <div class="col-md-4">   
-            	<label for="searchKeyword">
-            		검색어
-            	</label>         
+            <div class="col-md-4">               	      
                 <div class="input-group md-form form-sm form-2 pl-0 mb-0">
+                	<label  class="mr-sm-2 mb-0" for="searchKeyword">
+	            		검색어
+	            	</label>   
 					<input class="form-control my-0 py-1 grey-border" type="text" placeholder="Search" aria-label="Search" id="searchKeyword">
                     <div class="input-group-append" id="btn_search">
                         <span class="input-group-text waves-effect grey lighten-3" id="basic-addon1">

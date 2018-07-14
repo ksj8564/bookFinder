@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.bookFinder.model.Student;
+import com.bookFinder.model.User;
 import com.bookFinder.repo.BookFinderRepository;
 
 @Service
@@ -17,19 +17,19 @@ public class BookFinderServiceImpl implements BookFinderService{
 	
 	
 	@Override
-	public List<Student> findAll() {
-		List<Student> result = new ArrayList<Student>();
-		Iterable<Student> students = bookFinderRepository.findAll();
-		Iterator<Student> it = students.iterator();
+	public List<User> findAll() {
+		List<User> result = new ArrayList<User>();
+		Iterable<User> Users = bookFinderRepository.findAll();
+		Iterator<User> it = Users.iterator();
 		while(it.hasNext()) {
-			Student student = it.next();			
-			result.add(student);
+			User User = it.next();			
+			result.add(User);
 		}
 		return result;
 	}
 
 
-	public Student save(Student param) {
+	public User save(User param) {
 		return bookFinderRepository.save(param);
 	}
  

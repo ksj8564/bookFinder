@@ -1,5 +1,5 @@
 zuul:
-  forceOriginalQueryStringEncoding: false
+  forceOriginalQueryStringEncoding: true
   routes:
     kakaoApi:
       path: /kakaoApi/**

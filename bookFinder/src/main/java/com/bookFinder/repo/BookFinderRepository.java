@@ -3,10 +3,10 @@ package com.bookFinder.repo;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
-import com.bookFinder.model.Student;
+import com.bookFinder.model.User;
  
 
 @Repository
-public interface BookFinderRepository extends CrudRepository<Student, String> {}
+public interface BookFinderRepository extends CrudRepository<User, String> {}
 
 

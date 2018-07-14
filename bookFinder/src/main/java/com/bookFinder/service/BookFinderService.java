@@ -2,8 +2,8 @@ package com.bookFinder.service;
 
 import java.util.List;
 
-import com.bookFinder.model.Student;
+import com.bookFinder.model.User;
 
 public interface BookFinderService {
-	List<Student> findAll();
+	List<User> findAll();
 }

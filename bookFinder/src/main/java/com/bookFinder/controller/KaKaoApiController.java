@@ -7,8 +7,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class KaKaoApiController {
 
-	@GetMapping("/kakaoApi/v2/search/book")
-	public Object callKakaoRestApi(HttpServletRequest request,ModelMap model) {		
+/*	@GetMapping("/kakaoApi/v2/search/book")
+	public Object callKakaoRestApi(HttpServletRequest request,ModelMap model) {	
+		System.out.println("FFFFFFFFFFFF");
 		return "json";
-	} 
+	} */
 }
