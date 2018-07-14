@@ -22,13 +22,30 @@
 		color: orange;
 		font-weight: bolder;
 	}
+	.fa-stack i.fa-star {
+	    color:transparent;
+	    -webkit-text-stroke-width: 1px;
+	    -webkit-text-stroke-color: orange;
+	}	
+	.fa-stack i.fa-star.on {
+	    color:orange;
+	    -webkit-text-stroke-width: 1px;
+	    -webkit-text-stroke-color: orange;
+	}	
+	
+	
 </style>
 <script>
 var table = null;
 var orderObj = {
-	0:"accuracy",
-	1:"recency",
-	2:"sales"
+	0:{name:"title",type:"string"},
+	1:{name:"authors",type:"string"},
+	2:{name:"category",type:"string"},
+	3:{name:"price",type:"number"},
+	4:{name:"publisher",type:"string"},
+	5:{name:"thumbnail",type:"string"},
+	6:{name:"sale_yn",type:"string"},
+	7:{name:"bookmark",type:"string"}
 };
 
 $(document).ready(function(){	
@@ -54,12 +71,44 @@ $(document).ready(function(){
 		location.href="/logout";
 	})
 });
+$(document).on("click",".btn_bookmark",function(){
+	//-1보다 크면 빈 별 표시. 북마크 등록 안된 것
+	var starObj = $(this).find("i");
+	var starClass = starObj.prop("class");
+	var isBookmark = starClass.indexOf("on")>-1;
+	var param={
+		bookmarkId:0,
+		isbn:starObj.attr("isbn")
+	}	
+	console.log(param);
+	var ajaxUrl = ""
+	if(isBookmark){
+		//북마크에 등록되었던 상태라면 delete하고 클래스 변경
+		starObj.removeClass("on");
+		ajaxUrl = '/bookFinder/deleteBookmark';
+	}else{
+		starObj.addClass("on");
+		ajaxUrl = '/bookFinder/saveBookmark';
+	}
+	
+	$.ajax(ajaxUrl, {
+	    type: 'POST',  // http method
+	    data: param,
+	    success: function (data, status, xhr) {
+	    	console.log(data);
+	    },
+	    error: function (jqXhr, textStatus, errorMessage) {
+	    	console.log(jqXhr);
+	    }
+	});
+
+})
 function fn_initTable(){
 	var pageSize = 10;
 	table = $('#booksTable').DataTable({		 
 
 		"autoWidth"  : true,
-		"ordering" : false,
+		"ordering" : true,
 		"pageLength" : pageSize,	
 		"lengthChange": false, 
 		"paging"     : true,
@@ -75,20 +124,21 @@ function fn_initTable(){
 		    serverSide: true,
 			url : "/kakaoApi/v2/search/book",
 	        type: "GET",	       
-	        data: function (data) { 
+	        data: function (data) { 	  
 	        	console.log(data);
-	        	console.log(pageSize);
 	        	var page = (data.start/pageSize)+1;
 	        	return {
 	        		query : $("#searchKeyword").val(),
-			 		sort: orderObj[$(".searchSort.on").index()],
+			 		sort: orderObj[data.order[0].column].name,
+			 		sortType: orderObj[data.order[0].column].type,
+			 		sortDir : data.order[0].dir,
 			 		page : page,
 			 		size : pageSize,
 			 		target : $("#searchTarget option:selected").val(),
 			 		category : ''
 	        	};
 	        },      
-	       	dataSrc: function (json) {       
+	       	dataSrc: function (json) {     
 	       		console.log(json);
 	       		json.recordsTotal = json.meta.pageable_count;
 	       	    json.recordsFiltered = json.meta.pageable_count;
@@ -107,13 +157,27 @@ function fn_initTable(){
 	    "columns": [    	 
 			{ "data": "title", "name": "도서 제목"},
 			{ "data": "authors", "name": "저자"},
-			{ "data": "category", "name": "분류"},
-			{ "data": "publisher", "name": "출판사"},
+			{ "data": "category", "name": "분류"},			
 			{ "data": "price", "name": "가격", "render": $.fn.dataTable.render.number(',') },
+			{ "data": "publisher", "name": "출판사"},
 			{ "data": "thumbnail", 
 				"render": function (url) {				
 		        	return '<img src="'+url+'">';
 		  		}
+			},
+			{ "data": "status", "name": "상태"},	
+			{ "data": "bookmark", "name": "즐겨찾기", 
+				"render":function(data,type,row,meta){							
+					var starTag = '';
+					if(row.isbn.trim() != ''){
+						if(data=="Y"){
+							starTag = '<span class="fa-stack btn_bookmark pointer"><i class="fa fa-fw fa-lg fa-star on fa-stack-1x" aria-hidden="true" isbn="'+row.isbn+'"></i><span>';
+						}else{
+							starTag = '<span class="fa-stack btn_bookmark pointer"><i class="fa fa-fw fa-lg fa-star fa-stack-1x" aria-hidden="true" isbn="'+row.isbn+'"></i><span>';
+						}
+					}					
+					return starTag;
+				}
 			}
 		]
 	});
@@ -186,7 +250,7 @@ function fn_search(){
 	            		검색어
 	            	</label>   
 					<input class="form-control my-0 py-1 grey-border" type="text" placeholder="Search" aria-label="Search" id="searchKeyword">
-                    <div class="input-group-append" id="btn_search">
+                    <div class="input-group-append pointer" id="btn_search">
                         <span class="input-group-text waves-effect grey lighten-3" id="basic-addon1">
                             <a><i class="fa fa-search text-grey" aria-hidden="true"></i></a>
                         </span>
@@ -199,11 +263,13 @@ function fn_search(){
         <!--Table-->
         <table class="table table-striped" id="booksTable">
         	<colgroup>
-        		<col width="15%">
-        		<col width="15%">
-        		<col width="15%">
-        		<col width="15%">
-        		<col width="15%">
+        		<col width="25%">
+        		<col width="10%">
+        		<col width="10%">
+        		<col width="10%">
+        		<col width="10%">
+        		<col width="10%">
+        		<col width="10%">
         		<col width="*">
         	</colgroup>        	
             <!--Table head-->
@@ -212,9 +278,11 @@ function fn_search(){
                     <th>도서명</th>
                     <th>저자</th>
                     <th>분류</th>
-                    <th>가격</th>
+                    <th>가격(원)</th>
                     <th>출판사</th>
-                    <th>이미지</th>
+                    <th>이미지</th>     
+                    <th>판매여부</th> 
+                    <th>즐겨찾기</th>                        
                 </tr>
             </thead>
             <!--Table head-->

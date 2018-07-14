@@ -1,37 +1,35 @@
 package com.bookFinder.service;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.bookFinder.model.User;
-import com.bookFinder.repo.BookFinderRepository;
+import com.bookFinder.model.Bookmark;
+import com.bookFinder.repo.BookmarkRepository;
 
 @Service
+@Transactional 
 public class BookFinderServiceImpl implements BookFinderService{
 
 	@Autowired
-	private BookFinderRepository bookFinderRepository;
-	
+	private BookmarkRepository bookmarkRepository;
 	
 	@Override
-	public List<User> findAll() {
-		List<User> result = new ArrayList<User>();
-		Iterable<User> Users = bookFinderRepository.findAll();
-		Iterator<User> it = Users.iterator();
-		while(it.hasNext()) {
-			User User = it.next();			
-			result.add(User);
-		}
-		return result;
+	public void saveBookmark(Bookmark bookmark) {
+		if(findBookmarkByIsbnAndUserId(bookmark.getIsbn(), bookmark.getUserId()) == null) {
+			bookmarkRepository.save(bookmark); 
+		}		
+	}
+	
+	@Override
+	public void deleteBookmarkByIsbnAndUserId(String isbn, int userId) {
+		bookmarkRepository.deleteBookmarkByIsbnAndUserId(isbn, userId);
 	}
 
-
-	public User save(User param) {
-		return bookFinderRepository.save(param);
+	@Override
+	public Bookmark findBookmarkByIsbnAndUserId(String isbn, int userId) {
+		return bookmarkRepository.findBookmarkByIsbnAndUserId(isbn, userId);
 	}
- 
+
 	
 }
