@@ -1,8 +1,0 @@
-zuul:
-  forceOriginalQueryStringEncoding: true
-  routes:
-    kakaoApi:
-      path: /kakaoApi/**
-      url: https://dapi.kakao.com/
-      
- 
