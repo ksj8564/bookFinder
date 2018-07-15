@@ -6,12 +6,14 @@ import org.springframework.stereotype.Repository;
 import com.bookFinder.model.Bookmark;
  
 
-@Repository
+@Repository("bookmarkerRepository")
 public interface BookmarkRepository extends JpaRepository<Bookmark, String> {
 
-	Bookmark findBookmarkByIsbnAndUserId(String isbn, int userId);
+	Bookmark findByBarcodeAndUserId(String barcode, int userId);
+ 
+	void deleteByBarcodeAndUserId(String barcode, int userId); 
+ 
 
-	void deleteBookmarkByIsbnAndUserId(String isbn, int userId);
 
 }
 

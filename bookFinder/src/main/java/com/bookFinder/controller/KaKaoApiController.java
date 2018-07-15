@@ -22,9 +22,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.bookFinder.model.Bookmark;
+import com.bookFinder.model.History;
 import com.bookFinder.model.Search;
 import com.bookFinder.model.User;
-import com.bookFinder.service.BookFinderServiceImpl;
+import com.bookFinder.service.BookServiceImpl;
+import com.bookFinder.service.HistoryServiceImpl;
 import com.bookFinder.service.UserServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,10 +39,15 @@ public class KaKaoApiController {
     RestTemplate restTemplate;
     
 	@Autowired
-	private BookFinderServiceImpl bookFinderService;
+	private BookServiceImpl bookService;
 	
 	@Autowired
 	private UserServiceImpl userService;
+	
+	@Autowired
+	private HistoryServiceImpl historyService;
+	
+	
 
 	@GetMapping("/kakaoApi/v2/search/book")
 	public Object callKakaoRestApi(Search search,HttpServletRequest request) throws Exception {	
@@ -68,35 +75,33 @@ public class KaKaoApiController {
 		ObjectMapper mapper = new ObjectMapper();
 		map = mapper.readValue(result.getBody(), new TypeReference<Map<String, Object>>(){});
 		List<HashMap> bookList = (ArrayList<HashMap>)map.get("documents");
+		Principal principal = request.getUserPrincipal();
+		User user = userService.findUserByUsername(principal.getName());	
+		History history = new History();
+		history.setQuery(search.getQuery());	
+		history.setTarget(search.getTarget());	
+		historyService.save(history, principal);
 		
 		for(int i=0;i<bookList.size();i++) {
 			HashMap book = bookList.get(i);
-			String isbn= String.valueOf(book.get("isbn"));		
-			if(isbn != null && !"".equals(isbn)) {				
-				Principal principal = request.getUserPrincipal();
-				User user = userService.findUserByUsername(principal.getName());		
-				Bookmark resBookmark = bookFinderService.findBookmarkByIsbnAndUserId(isbn,user.getUserId());
-				System.out.println("AAAAAAAAAAA : "+resBookmark);
-				if(resBookmark != null) {
-					System.out.println("CCCCCCC : 널아님!!");
+			String barcode= String.valueOf(book.get("barcode"));		
+			if(barcode != null && !"".equals(barcode)) {	
+				Bookmark resBookmark = bookService.findByBarcodeAndUserId(barcode,user.getId());				
+				if(resBookmark != null) {					
 					book.put("bookmark", "Y");
-				}else if(resBookmark == null){
-					System.out.println("CCCCCCC : 널!!");
-					book.put("bookmark", "N"); 
+					book.put("bookmark_id",resBookmark.getId());
+				}else if(resBookmark == null){				
+					book.put("bookmark", "N"); 					
 				}
 			}
-		};
-		System.out.println("BBB : "+bookList.size());
+		};	
 		String sort = search.getSort();
 		String sortDir = search.getSortDir();
 		String sortType = search.getSortType();
-		System.out.println("AAAAAAAAA : "+sort);
-		System.out.println("BBBBBBBBB : "+sortDir);
-		System.out.println("CCCCCCCC  : "+sortType);
+
 		if(sort != null) {
 			Collections.sort(bookList, new Comparator<HashMap>() {
 		        public int compare(HashMap o1, HashMap o2) {	
-		        	System.out.println("GGGGGGGGGGGGG : "+o1);
 		        	if("asc".equals(sortDir) && "number".equals(sortType)){
 		        		return ((Integer)o1.get(sort)).compareTo((Integer)o2.get(sort));
 		        	}else if("desc".equals(sortDir) && "number".equals(sortType)){	        		

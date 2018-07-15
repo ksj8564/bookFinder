@@ -19,24 +19,21 @@ public class CommonController {
 	
 	@Autowired
 	private UserService userService;
-	
-	@RequestMapping(value={"/", "/login"}, method = RequestMethod.GET)
-	public ModelAndView login(){
-		ModelAndView modelAndView = new ModelAndView();
+
+	@RequestMapping(value={ "/","/login"}, method = RequestMethod.GET)
+	public ModelAndView login(ModelAndView modelAndView){	
 		modelAndView.setViewName("login");
 		return modelAndView;
 	}
 	
-	@RequestMapping(value={"/bookFinder"}, method = RequestMethod.GET)
-	public ModelAndView bookFind(){
-		ModelAndView modelAndView = new ModelAndView();
+	@RequestMapping(value={"/bookFinder"}, method = RequestMethod.GET)	
+	public ModelAndView bookFind(ModelAndView modelAndView){	
 		modelAndView.setViewName("bookFinder");
 		return modelAndView;
 	}
 		
 	@RequestMapping(value="/registration", method = RequestMethod.GET)
-	public ModelAndView registration(){
-		ModelAndView modelAndView = new ModelAndView();
+	public ModelAndView registration(ModelAndView modelAndView){
 		User user = new User();
 		modelAndView.addObject("user", user);
 		modelAndView.setViewName("registration");
@@ -44,8 +41,7 @@ public class CommonController {
 	}
 	
 	@RequestMapping(value = "/registration", method = RequestMethod.POST)
-	public ModelAndView createNewUser(@Valid User user, BindingResult bindingResult) {
-		ModelAndView modelAndView = new ModelAndView();
+	public ModelAndView createNewUser(@Valid User user, BindingResult bindingResult, ModelAndView modelAndView) {
 		User userExists = userService.findUserByUsername(user.getUsername());
 		if (userExists != null) {
 			bindingResult.rejectValue("username", "error.user","There is already a user registered with the username provided");

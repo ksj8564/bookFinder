@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -13,7 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 <script src="//cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
-
+<script th:src="@{/js/jquery.popupoverlay.js}"></script>
 <style>
 	.pointer{
 		cursor: pointer;
@@ -42,13 +42,18 @@ var orderObj = {
 	1:{name:"authors",type:"string"},
 	2:{name:"category",type:"string"},
 	3:{name:"price",type:"number"},
-	4:{name:"publisher",type:"string"},
-	5:{name:"thumbnail",type:"string"},
-	6:{name:"sale_yn",type:"string"},
-	7:{name:"bookmark",type:"string"}
+	4:{name:"sale_price",type:"number"},
+	5:{name:"publisher",type:"string"},
+	6:{name:"thumbnail",type:"string"},
+	7:{name:"sale_yn",type:"string"},
+	8:{name:"bookmark",type:"string"}
 };
 
 $(document).ready(function(){	
+	$("#bookDetailPopup").popup({	
+		opacity:0.6,
+		color:"#FFFFFF"
+	});
 	$("#btn_search").click(function(){
 		fn_search();
 	});
@@ -56,49 +61,62 @@ $(document).ready(function(){
 		if(e.keyCode==13){
 			fn_search();
 		}
-	});
-	$(".searchSort").click(function(){		
-		$(".searchSort").removeClass("on");
-		$(this).addClass("on");	
-		
-		var target = $("#searchKeyword");
-		var tv = target.val();		
-		if(tv != null && tv != ""){			
-			fn_search();
-		}			
-	});
+	});	
 	$("#btn_logout").click(function(){
 		location.href="/logout";
 	})
+});
+$(document).on("click",".btn_bookTitle",function(){
+	var data = $(this).data("book");	
+	var thumbnail = data.thumbnail;
+	if(data.thumbnail == ""){
+		thumbnail = "/image/noimage.gif"
+	}
+	$("#detail_thumbnail").prop("src",thumbnail);
+	$("#detail_title").text(data.title);
+	$("#detail_contents").html("<strong>내용: </strong>"+data.contents);
+	$("#detail_price").html("<strong>판매가격/정상가격: </strong>"+data.sale_price+"원 / "+data.price+"원");
+	$("#detail_sale_price").text(data.sale_price);
+	$("#detail_authors").html("<strong>저자: </strong>"+data.authors);
+	$("#detail_category").html("<strong>분류: </strong>"+data.category);
+	$("#detail_url").prop("href", data.url);
+	
 });
 $(document).on("click",".btn_bookmark",function(){
 	//-1보다 크면 빈 별 표시. 북마크 등록 안된 것
 	var starObj = $(this).find("i");
 	var starClass = starObj.prop("class");
-	var isBookmark = starClass.indexOf("on")>-1;
-	var param={
-		bookmarkId:0,
-		isbn:starObj.attr("isbn")
-	}	
-	console.log(param);
-	var ajaxUrl = ""
+	var isBookmark = starClass.indexOf("on")>-1;	
+	var param=starObj.data("book");	
+	param.book_id=0;
+	if(param.authors instanceof Array){
+		param.authors = param.authors.join(" ");		
+	};
+	if(param.translators instanceof Array){
+		param.translators = param.translators.join(" ");
+	};
+	var ajaxUrl = "";
+	var httpMethod = "";
 	if(isBookmark){
 		//북마크에 등록되었던 상태라면 delete하고 클래스 변경
 		starObj.removeClass("on");
-		ajaxUrl = '/bookFinder/deleteBookmark';
-	}else{
-		starObj.addClass("on");
-		ajaxUrl = '/bookFinder/saveBookmark';
-	}
+		ajaxUrl = '/bookmark/delete';
 	
+	}else{
+	
+		starObj.addClass("on");
+		ajaxUrl = '/bookmark/save';
+	
+	}
 	$.ajax(ajaxUrl, {
-	    type: 'POST',  // http method
-	    data: param,
+	    type: "POST", 
+	    data: param,	 
 	    success: function (data, status, xhr) {
-	    	console.log(data);
-	    },
+	    	fn_bookmarkDataSearch();
+	    },	    
 	    error: function (jqXhr, textStatus, errorMessage) {
-	    	console.log(jqXhr);
+	    	alert("오류가 발생했습니다. 관리자에게 문의하세요.");
+	    	return;
 	    }
 	});
 
@@ -125,7 +143,6 @@ function fn_initTable(){
 			url : "/kakaoApi/v2/search/book",
 	        type: "GET",	       
 	        data: function (data) { 	  
-	        	console.log(data);
 	        	var page = (data.start/pageSize)+1;
 	        	return {
 	        		query : $("#searchKeyword").val(),
@@ -139,7 +156,6 @@ function fn_initTable(){
 	        	};
 	        },      
 	       	dataSrc: function (json) {     
-	       		console.log(json);
 	       		json.recordsTotal = json.meta.pageable_count;
 	       	    json.recordsFiltered = json.meta.pageable_count;
 	       	    if(json.recordsTotal > 500){
@@ -150,32 +166,41 @@ function fn_initTable(){
 	       	    }
 				return json.documents;
 	        },
-			error:function(e){
-				console.log(e);
+			error:function(e){				
+		    	alert("오류가 발생했습니다. 관리자에게 문의하세요.");
+		    	return;				
 			}
 	    },
 	    "columns": [    	 
-			{ "data": "title", "name": "도서 제목"},
-			{ "data": "authors", "name": "저자"},
+			{"data": "title", "name": "도서 제목","render":function(data,type,row,meta){							
+				var	tag = "<a href='javascript:void(0);' class='btn_bookTitle bookDetailPopup_open' data-book='"+JSON.stringify(row)+"'>"+data+"</a>";
+				return tag;
+				}								
+			},
+			{ "data": "authors", "name": "저자", bSortable:false },
 			{ "data": "category", "name": "분류"},			
-			{ "data": "price", "name": "가격", "render": $.fn.dataTable.render.number(',') },
+			{ "data": "price", "name": "정상가격", "render": $.fn.dataTable.render.number(',') },
+			{ "data": "sale_price", "name": "판매가격", "render": $.fn.dataTable.render.number(',') },
 			{ "data": "publisher", "name": "출판사"},
-			{ "data": "thumbnail", 
-				"render": function (url) {				
+			{ "data": "thumbnail",  bSortable:false,
+				"render": function (url) {					
+					if(url.trim()==""){
+						return '<img src="/image/noimage.gif" style="max-height:100px">';											
+					}
 		        	return '<img src="'+url+'">';
 		  		}
 			},
 			{ "data": "status", "name": "상태"},	
 			{ "data": "bookmark", "name": "즐겨찾기", 
 				"render":function(data,type,row,meta){							
-					var starTag = '';
-					if(row.isbn.trim() != ''){
+					var starTag = '';	
+					if(row.barcode != null){
 						if(data=="Y"){
-							starTag = '<span class="fa-stack btn_bookmark pointer"><i class="fa fa-fw fa-lg fa-star on fa-stack-1x" aria-hidden="true" isbn="'+row.isbn+'"></i><span>';
+							starTag = "<span class='fa-stack btn_bookmark pointer'><i class='fa fa-fw fa-lg fa-star on fa-stack-1x' aria-hidden='true' data-book='"+JSON.stringify(row)+"'></i><span>";
 						}else{
-							starTag = '<span class="fa-stack btn_bookmark pointer"><i class="fa fa-fw fa-lg fa-star fa-stack-1x" aria-hidden="true" isbn="'+row.isbn+'"></i><span>';
+							starTag = "<span class='fa-stack btn_bookmark pointer'><i class='fa fa-fw fa-lg fa-star fa-stack-1x' aria-hidden='true' data-book='"+JSON.stringify(row)+"'></i><span>";
 						}
-					}					
+					}				 
 					return starTag;
 				}
 			}
@@ -206,90 +231,352 @@ function fn_search(){
 
 </head>
 <body>
-<div class="card">
-    <div class="card-body">
-    	<div class="row"> 
-	    	<div class="col-md-11 mb-3 text-right">
-	    		
-	    	</div> 
-	    	<div class="col-md-1 mb-3 text-right">
-	    		<button type="button" class="btn btn-dark" id="btn_logout">로그아웃</button>
-	    	</div>    	
+	<nav class="navbar navbar-expand-md">
+		 <div class="navbar-collapse collapse w-100 order-1 order-md-0 dual-collapse2">	
+			<ul class="nav mr-auto" id="bookFinderTab" role="tablist">
+			  <li class="nav-item">
+			    <a class="nav-link" id="bookList-tab" data-toggle="tab" href="#bookList" role="tab" aria-controls="home" aria-selected="true">BookSearch</a>
+			  </li>
+			  <li class="nav-item">
+			    <a class="nav-link" id="bookmark-tab" data-toggle="tab" href="#bookmark" onclick="fn_bookmarkDataSearch();" role="tab" aria-controls="profile" aria-selected="false">Bookmark</a>
+			  </li>	
+			  <li class="nav-item">
+			    <a class="nav-link" id="searchHistory-tab" data-toggle="tab" href="#searchHistory" onclick="fn_searchHistoryDataSearch();" role="tab" aria-controls="profile" aria-selected="false">SearchHistory</a>
+			  </li>	
+			</ul>
 		</div>
-        <!-- Grid row -->
-        <div class="row mb-3 form-inline" >
-            <!-- Grid column -->
-            <div class="col-md-4">    
-            	<div class="input-group md-form form-sm form-2 pl-0 mb-0"> 
-					<ul class="list-inline">
-					  <li class="pointer list-inline-item searchSort on">최신순</li>
-					  <li class="pointer list-inline-item searchSort">정확도순</li>
-					  <li class="pointer list-inline-item searchSort">판매량순</li>
-					</ul>
-				</div>
-            </div>            
-            <div class="col-md-4">      
-            	<div class="input-group md-form form-sm form-2 pl-0 mb-0"> 
-	            	<label  class="mr-sm-2 mb-0" for="searchTarget">
-	            		검색대상
-	            	</label>     	
-	            	<select id="searchTarget" class="custom-select">
-	            		<option value="all">전체</option>
-	            		<option value="title">제목</option>
-	            		<option value="isbn">ISBN</option>
-	            		<option value="keyword">주제어</option>
-	            		<option value="contents">목차</option>
-	            		<option value="overview">책소개</option>
-	            		<option value="publisher">출판사</option>
-	            	</select>
-            	</div>
-            </div>         
-            <div class="col-md-4">               	      
-                <div class="input-group md-form form-sm form-2 pl-0 mb-0">
-                	<label  class="mr-sm-2 mb-0" for="searchKeyword">
-	            		검색어
-	            	</label>   
-					<input class="form-control my-0 py-1 grey-border" type="text" placeholder="Search" aria-label="Search" id="searchKeyword">
-                    <div class="input-group-append pointer" id="btn_search">
-                        <span class="input-group-text waves-effect grey lighten-3" id="basic-addon1">
-                            <a><i class="fa fa-search text-grey" aria-hidden="true"></i></a>
-                        </span>
-                    </div>
-                </div>
-            </div>
-            <!-- Grid column -->
-        </div>
-        <!-- Grid row -->
-        <!--Table-->
-        <table class="table table-striped" id="booksTable">
-        	<colgroup>
-        		<col width="25%">
-        		<col width="10%">
-        		<col width="10%">
-        		<col width="10%">
-        		<col width="10%">
-        		<col width="10%">
-        		<col width="10%">
-        		<col width="*">
-        	</colgroup>        	
-            <!--Table head-->
-            <thead>            	
-                <tr>
-                    <th>도서명</th>
-                    <th>저자</th>
-                    <th>분류</th>
-                    <th>가격(원)</th>
-                    <th>출판사</th>
-                    <th>이미지</th>     
-                    <th>판매여부</th> 
-                    <th>즐겨찾기</th>                        
-                </tr>
-            </thead>
-            <!--Table head-->
-        </table>
-        <!--Table-->
+		<div class="navbar-collapse collapse w-100 order-3 dual-collapse2">
+	        <ul class="navbar-nav ml-auto">      
+	            <li class="nav-item">
+	                <a class="nav-link" href="javascript:void(0)" id="btn_logout">로그아웃</a>
+	            </li>
+	        </ul>
+	    </div>
+	</nav>
+	<div class="tab-content" id="bookFinderTabContent">
+	
+		<!--도서검색 시작 -->
+		<div class="tab-pane fade show active" id="bookList" role="tabpanel" aria-labelledby="bookList-tab">
+			
+			<div class="card">			
+				<div class="col-md-4 ">
+					<h2>도서검색</h2>
+				</div>			
+			    <div class="card-body">
+			    	
+			        <!-- Grid row -->
+			        <div class="row mb-3 form-inline" >
+			            <!-- Grid column -->
+			            <div class="col-md-4">  
+			            </div>		          
+			            <div class="col-md-4">      
+			            	<div class="input-group md-form form-sm form-2 pl-0 mb-0"> 
+				            	<label  class="mr-sm-2 mb-0" for="searchTarget">
+				            		검색대상
+				            	</label>     	
+				            	<select id="searchTarget" class="custom-select">
+				            		<option value="all">전체</option>
+				            		<option value="title">제목</option>
+				            		<option value="isbn">ISBN</option>
+				            		<option value="keyword">주제어</option>
+				            		<option value="contents">목차</option>
+				            		<option value="overview">책소개</option>
+				            		<option value="publisher">출판사</option>
+				            	</select>
+			            	</div>
+			            </div>         
+			            <div class="col-md-4">               	      
+			                <div class="input-group md-form form-sm form-2 pl-0 mb-0">
+			                	<label  class="mr-sm-2 mb-0" for="searchKeyword">
+				            		검색어
+				            	</label>   
+								<input class="form-control my-0 py-1 grey-border" type="text" placeholder="Search" aria-label="Search" id="searchKeyword">
+			                    <div class="input-group-append pointer" id="btn_search">
+			                        <span class="input-group-text waves-effect grey lighten-3" id="basic-addon1">
+			                            <a><i class="fa fa-search text-grey" aria-hidden="true"></i></a>
+			                        </span>
+			                    </div>
+			                </div>
+			            </div>
+			            <!-- Grid column -->
+			        </div>
+			        <!-- Grid row -->
+			        <!--Table-->
+			        <table class="table table-striped" id="booksTable">
+			        	<colgroup>
+			        		<col width="20%">
+			        		<col width="10%">
+			        		<col width="7%">
+			        		<col width="10%">
+			        		<col width="10%">
+			        		<col width="10%">
+			        		<col width="8%">
+			        		<col width="8%">
+			        		<col width="*">
+			        	</colgroup>        	
+			            <!--Table head-->
+			            <thead>            	
+			                <tr>
+			                    <th>도서명</th>
+			                    <th>저자</th>
+			                    <th>분류</th>
+			                    <th>정상가격(원)</th>
+			                    <th>판매가격(원)</th>
+			                    <th>출판사</th>
+			                    <th>이미지</th>     
+			                    <th>판매여부</th> 
+			                    <th>즐겨찾기</th>                        
+			                </tr>
+			            </thead>
+			            <!--Table head-->
+			        </table>
+			        <!--Table-->
+			
+			    </div>
+			</div>
+		</div>
+		<!--도서검색 끝 -->
+		
+		<!-- 북마크 시작 -->
+		<div class="tab-pane fade show" id="bookmark" role="tabpanel" aria-labelledby="bookmark-tab">
+			<div class="card" id="bookmark">
+				<div class="col-md-4 ">
+					<h2>북마크</h2>
+				</div>	
+			<script>
+				var bookmarkTable = null;
+				function fn_initBookmarkTable(){	
+					
+						bookmarkTable = $('#bookmarkTable').DataTable({		 
+							
+							"autoWidth"  : true,
+							"ordering" : false,				
+							"lengthChange": false, 
+							"paging"     : false,
+							"pagingType": "full_numbers",
+							"scrollY": 420,   	
+							"stateSave"  : true,
+							"responsive" : true,
+							"searching"  : false,  	
+							"serverSide" : true,
+							"bInfo" : false,
+							ajax : {
+								processing: true,
+							    serverSide: true,
+								url : "/bookmark/findAll",
+						        type: "GET",	       
+						        data: function (data) { 	  
+						        	return { };
+						        },      
+						       	dataSrc: function (json) {     
+									return json;
+						        },
+								error:function(e){
+									alert("오류가 발생했습니다. 관리자에게 문의하세요.");
+							    	return;
+									
+								}
+						    },
+						    "columns": [    	 
+						    	{"data": "title", "name": "도서 제목","render":function(data,type,row,meta){							
+									var	tag = "<a href='javascript:void(0);' class='btn_bookTitle bookDetailPopup_open' data-book='"+JSON.stringify(row)+"'>"+data+"</a>";
+									return tag;
+									}								
+								},
+								{ "data": "authors", "name": "저자", bSortable:false },
+								{ "data": "category", "name": "분류"},			
+								{ "data": "price", "name": "정상가격", "render": $.fn.dataTable.render.number(',') },
+								{ "data": "sale_price", "name": "판매가격", "render": $.fn.dataTable.render.number(',') },
+								{ "data": "publisher", "name": "출판사"},
+								{ "data": "thumbnail",  bSortable:false,
+									"render": function (url) {	
+										if(url==""){
+											return '<img src="/image/noimage.gif" style="max-height:100px">';										
+										}
+							        	return '<img src="'+url+'">';
+							  		}
+								},
+								{ "data": "status", "name": "상태"},
+								{ "data": "bookmark", "name": "즐겨찾기", 
+									"render":function(data,type,row,meta){		
+										if(row.barcode != null){
+											var	starTag = "<span class='fa-stack btn_bookmark pointer'><i class='fa fa-fw fa-lg fa-star on fa-stack-1x' aria-hidden='true' data-book='"+JSON.stringify(row)+"'></i><span>";
+											return starTag;
+										}
+									}
+								}
+								
+							]
+						});
+					
+					
+				}
+				function fn_bookmarkDataSearch(){	
+					setTimeout(function(){
+						if(bookmarkTable==null){
+							fn_initBookmarkTable();
+						}else{
+							bookmarkTable.ajax.reload();	
+						}
+					},300)
+				}
+			</script>
+		    <div class="card-body">
+		        <!--Table-->
+		        <table class="table table-striped" id="bookmarkTable">
+		        	<colgroup>
+		        		<col width="20%">
+		        		<col width="10%">
+		        		<col width="7%">
+		        		<col width="10%">
+		        		<col width="10%">
+		        		<col width="10%">
+		        		<col width="8%">	
+		        		<col width="8%">			        		
+		        		<col width="*">
+		        	</colgroup>        	
+		            <!--Table head-->
+		            <thead>            	
+		                <tr>
+		                    <th>도서명</th>
+		                    <th>저자</th>
+		                    <th>분류</th>
+		                    <th>정상가격(원)</th>
+		                    <th>판매가격(원)</th>
+		                    <th>출판사</th>
+		                    <th>이미지</th>     
+		                    <th>판매여부</th> 	
+		                    <th>즐겨찾기</th> 			                                    
+		                </tr>
+		            </thead>
+		            <!--Table head-->
+		        </table>
+		        <!--Table-->			
+		    </div>
+		</div>
+	</div>
+	<!-- 북마크 끝 -->
+	
+	<!-- 히스토리 시작 -->
+	<div class="tab-pane fade show" id="searchHistory" role="tabpanel" aria-labelledby="searchHistory-tab">
+			<div class="card" id="searchHistory">
+			<div class="col-md-4 ">
+				<h2>검색기록</h2>
+			</div>	
+			<script>
+				var searchHistoryTable = null;
+				function fn_initSearchHistoryTable(){						
+					searchHistoryTable = $('#searchHistoryTable').DataTable({	
+							"autoWidth"  : true,
+							"ordering" : false,				
+							"lengthChange": false, 
+							"paging"     : false,
+							"pagingType": "full_numbers",
+							"scrollY": 420,   	
+							"stateSave"  : true,
+							"responsive" : true,
+							"searching"  : false,  	
+							"serverSide" : true,
+							"bInfo" : false,
+							ajax : {
+								processing: true,
+							    serverSide: true,
+								url : "/history/findAll",
+						        type: "GET",	       
+						        data: function (data) { 	  
+						        	return { };
+						        },      
+						       	dataSrc: function (json) {     
+									return json;
+						        },
+								error:function(e){
+									alert("오류가 발생했습니다. 관리자에게 문의하세요.");
+							    	return;
+									
+								}
+						    },
+						    "columns": [    									
+								{ "data": "query", "name": "검색어"},			
+								{ "data": "target", "name": "검색대상"},
+								{ "data": "dateCreated", "name": "검색일자"}
+							]
+						});
+					
+					
+				}
+				function fn_searchHistoryDataSearch(){	
+					setTimeout(function(){
+						if(searchHistoryTable==null){
+							fn_initSearchHistoryTable();
+						}else{
+							searchHistoryTable.ajax.reload();	
+						}
+					},300)
+				}
+			</script>
+			    <div class="card-body">
+			        <!--Table-->
+			        <table class="table table-striped" id="searchHistoryTable">
+			        	<colgroup>
+			        		<col width="30%">
+			        		<col width="*">	
+			        		<col width="30%">		        		
+			        	</colgroup>        	
+			            <!--Table head-->
+			            <thead>            	
+			                <tr>
+			                    <th>검색대상</th>
+			                    <th>검색어</th>	
+			                    <th>검색일자</th>	                            
+			                </tr>
+			            </thead>
+			            <!--Table head-->
+			        </table>
+			        <!--Table-->
+			
+			    </div>
+			</div>
+		</div>
+	
+	</div>
+	<!-- 히스토리 끝 -->
 
-    </div>
-</div>
+
+
+
+	<!-- Add content to the popup -->
+
+	<div class="container" id="bookDetailPopup">
+		<div class="row">
+			<div class="col-md-offset-2 col-md-12 col-lg-offset-3 col-lg-12">
+	    	 <div class="well profile">
+	    	 	<div class="col-sm-12">
+	    	 		<div class="col-xs-12 col-sm-12">
+	    	 			<img id="detail_thumbnail" src=""/>
+	    	 		</div>
+	    	 	</div>  
+	            <div class="col-sm-12">
+	                <div class="col-xs-12 col-sm-12">
+	                    <h2 id="detail_title"></h2>
+	                    <p id="detail_authors"><strong>저자: </strong></p>
+	                    <p id="detail_category"><strong>분류: </strong></p>
+	                    <p id="detail_contents"><strong>내용: </strong></p>
+	                    <p id="detail_price"><strong>판매가격/정상가격: </strong></p>                    
+	                </div>    
+	            </div>            
+	            <div class="col-xs-12 divider text-center ">
+	                <div class="col-xs-12 col-sm-12 emphasis">	               
+	                    <a href="javascript:void(0);" target="_blank" id="detail_url"><button class="btn btn-success btn-block">구매하러가기</button></a>
+	                </div>	  
+	                <br>
+	                <div class="col-xs-12 col-sm-12 emphasis">	               
+	                   <button class="btn btn-fail btn-block bookDetailPopup_close" >닫기</button>
+	                </div>	             
+	            </div>
+	    	 </div>                 
+			</div>
+		</div>
+	</div>
+
 </body>
 </html>
