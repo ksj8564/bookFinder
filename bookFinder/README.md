@@ -16,9 +16,9 @@ Book Finder Project
 ## 6) http://localhost:8080/ 접속
 
 # 2. 사용 기술
-##1) Front End
+## 1) Front End
 ### - jquery, thymeleaf, thymeleaf-extras-springsecurity
-##2) Back End
+## 2) Back End
 ### - Spring Boot 2.0.0, Spring JPA, Spring Security
-##3) DB
+## 3) DB
 ### - MariaDb 10.2
