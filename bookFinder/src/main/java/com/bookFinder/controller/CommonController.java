@@ -57,5 +57,12 @@ public class CommonController {
 		}
 		return modelAndView;
 	}
+	
+	@RequestMapping(value = "/accessDenied")
+	public ModelAndView accessDenied(ModelAndView mav) {
+		mav.setViewName("access-denied");
+		return mav;
+	}
+
 
 }
